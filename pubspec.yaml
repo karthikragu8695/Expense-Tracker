@@ -1,0 +1,38 @@
+name: expanse_tracker
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  supabase_flutter: ^2.0.0
+  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.8
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  
+  
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/PWV2_LOGO.png"
+
+flutter:
+  uses-material-design: true
+
+  # 🔥 Assets (FIXED)
+  assets:
+    - assets/images/download.png
+    - assets/images/uR9DIlXJzc.gif
+    - assets/images/pngtree-pink-blue-neon-border-light-effect-circle-png-image_7093035.png
