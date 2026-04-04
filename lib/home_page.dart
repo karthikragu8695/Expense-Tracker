@@ -30,7 +30,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [HomeContent(), ProfilePage(),ProfilePage()];
+    final pages = [HomeContent(),ProfilePage()];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -39,6 +39,7 @@ class _HomePageState extends State<HomePage> {
       body: IndexedStack(index: _selectIndex, children: pages),
 
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFFF5F7FA),
         currentIndex: _selectIndex,
         onTap: (index) {
           setState(() {
@@ -47,13 +48,13 @@ class _HomePageState extends State<HomePage> {
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Analytics',
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.analytics),
+          //   label: 'Analytics',
+          // ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
-      ),
+      ),  
     );
   }
 }
