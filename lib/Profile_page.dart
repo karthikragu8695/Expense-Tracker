@@ -1,105 +1,203 @@
+import 'package:expanse_tracker/editProfile.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+class ProfilePageUI extends StatefulWidget {
+  const ProfilePageUI({super.key});
+
+  @override
+  State<ProfilePageUI> createState() => _ProfilePageUIState();
+}
+
+class _ProfilePageUIState extends State<ProfilePageUI> {
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    /// 🔥 Listen for auth/user changes
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (mounted) setState(() {});
+    });
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    final avatar = user?.userMetadata?['avatar_url'];
+    final name = user?.userMetadata?['name'] ?? "No Name";
+    final email = user?.email ?? "No Email";
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-
-      appBar: AppBar(
-        title: const Text("Profile"),
-        centerTitle: true,
-        backgroundColor: const Color(0xFFF5F7FA),
-      ),
-
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-
-          // 👤 Profile Card
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            elevation: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+      backgroundColor: Colors.grey[100],
+      body: SafeArea(
+        child: Column(
+          children: [
+            /// 🔵 HEADER
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(top: 40, bottom: 30),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue, Colors.blueAccent],
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
                 children: [
-                  // Avatar
-                  CircleAvatar(
-                    radius: 35,
-                    backgroundColor: Colors.deepPurple,
-                    child: const Icon(
-                      Icons.person,
-                      size: 40,
+                  /// Avatar with edit icon
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 45,
+                        backgroundImage: (avatar != null &&
+                                avatar.toString().isNotEmpty)
+                            ? NetworkImage(
+                                "$avatar?t=${DateTime.now().millisecondsSinceEpoch}",
+                              )
+                            : const NetworkImage(
+                                "https://i.pravatar.cc/300",
+                              ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.white,
+                          child: const Icon(Icons.edit, size: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  /// Name
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  const SizedBox(width: 15),
-
-                  // Name + Email
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Karthik R",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        "karthik@email.com",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
+                  /// Email
+                  Text(
+                    email,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ],
               ),
             ),
-          ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // ⚙️ Options List
-          Expanded(
-            child: ListView(
-              children: [
-                _buildTile(Icons.person, "Edit Profile"),
-                _buildTile(Icons.lock, "Change Password"),
-                _buildTile(Icons.notifications, "Notifications"),
-                _buildTile(Icons.help, "Help & Support"),
+            /// 📋 MENU
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                children: [
+                  _MenuTile(
+                    icon: Icons.person,
+                    title: "Edit Profile",
+                    onTap: (context) async {
+                      final updated = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfilePage(),
+                        ),
+                      );
 
-                const SizedBox(height: 10),
+                      if (updated == true) {
+                        await Supabase.instance.client.auth.refreshSession();
+                        setState(() {});
+                      }
+                    },
+                  ),
 
-                _buildTile(Icons.logout, "Logout", isLogout: true),
-              ],
+                  _MenuTile(
+                    icon: Icons.history,
+                    title: "Transaction History",
+                    onTap: (context) {
+                      // TODO: Navigate
+                    },
+                  ),
+
+                  _MenuTile(
+                    icon: Icons.settings,
+                    title: "Settings",
+                    onTap: (context) {},
+                  ),
+
+                  _MenuTile(
+                    icon: Icons.lock,
+                    title: "Privacy",
+                    onTap: (context) {},
+                  ),
+
+                  _MenuTile(
+                    icon: Icons.help,
+                    title: "Help & Support",
+                    onTap: (context) {},
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            /// 🔴 LOGOUT BUTTON
+            // Padding(
+            //   padding: const EdgeInsets.all(16),
+            //   child: ElevatedButton(
+            //     onPressed: isLoading ? null : () => logout(context),
+            //     style: ElevatedButton.styleFrom(
+            //       minimumSize: const Size(double.infinity, 50),
+            //       backgroundColor: Colors.red,
+            //     ),
+            //     child: isLoading
+            //         ? const CircularProgressIndicator(color: Colors.white)
+            //         : const Text("Logout"),
+            //   ),
+            // ),
+          ],
+        ),
       ),
     );
   }
+}
 
-  // 🔹 Reusable ListTile
-  Widget _buildTile(IconData icon, String title, {bool isLogout = false}) {
-    return ListTile(
-      leading: Icon(icon, color: isLogout ? Colors.red : Colors.black),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isLogout ? Colors.red : Colors.black,
-          fontWeight: FontWeight.w500,
-        ),
+/// 🔹 Reusable Menu Tile
+class _MenuTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Function(BuildContext)? onTap;
+
+  const _MenuTile({
+    required this.icon,
+    required this.title,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap != null ? () => onTap!(context) : null,
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: () {},
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'package:expanse_tracker/Profile_page.dart';
+import 'package:expanse_tracker/Profile_setup.dart';
 import 'package:expanse_tracker/home_page.dart';
 import 'package:expanse_tracker/login/login.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +48,7 @@ class _CreateaccountState extends State<Createaccount> {
       password: password,
       data: {'name': name},
     );
+   
 
     if (response.user != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,7 +59,7 @@ class _CreateaccountState extends State<Createaccount> {
       if (response.session != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
+          MaterialPageRoute(builder: (_) => const ProfileSetupPage()),
         );
       } else {
         /// 👉 If email confirmation ON

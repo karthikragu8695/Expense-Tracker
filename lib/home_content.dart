@@ -1,8 +1,14 @@
+import 'dart:io';
+
 import 'package:expanse_tracker/AddTransaction.dart';
+import 'package:expanse_tracker/ListDeatails.dart';
+import 'package:expanse_tracker/login/login.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Transaction {
+  
   final String id;
   final String title;
   final double amount;
@@ -10,6 +16,7 @@ class Transaction {
   final bool isExpense;
 
   Transaction({
+   
     required this.id,
     required this.title,
     required this.amount,
@@ -19,47 +26,132 @@ class Transaction {
 }
 
 class HomeContent extends StatefulWidget {
-  const HomeContent({super.key});
+   HomeContent({super.key});
 
   @override
   State<HomeContent> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomeContent> {
+  Future<void> loadUserFromSupabase() async {
+    final user = Supabase.instance.client.auth.currentUser;
 
+    if (user == null) return;
+
+    try {
+      final data = await Supabase.instance.client
+          .from('user_detail')
+          .select()
+          .eq('uuidd', user.id)
+          .maybeSingle();
+
+      if (data != null) {
+        setState(() {
+          userName = data['name'] ?? 'User';
+          userImage = data['image_url'] ?? '';
+        });
+      }
+    } catch (e) {
+      print("Profile fetch error: $e");
+    }
+  }
+
+  /// 🔴 Logout with confirmation
+  Future<void> logout(BuildContext context) async {
+    final confirm = await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      await Supabase.instance.client.auth.signOut();
+
+      if (!context.mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Logout failed: $e")));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  String userName = '';
+  String userImage = '';
   bool isLoading = true;
   @override
   void initState() {
     super.initState();
     fetchData();
+    loadUserData();
+    loadUserFromSupabase();
+  }
+
+  Future<void> loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      userName = prefs.getString('user_name') ?? 'User';
+      userImage = prefs.getString('user_image') ?? '';
+    });
   }
 
   final List<Transaction> _transaction = [];
   Future<void> fetchData() async {
-    final response = await Supabase.instance.client
-        .from('Transaction')
-        .select()
-        .order('date', ascending: false);
+    try {
+      final response = await Supabase.instance.client
+          .from('Transaction')
+          .select()
+          .order('date', ascending: false);
 
-    final List<Transaction> loadedData = [];
+      final List<Transaction> loadedData = [];
 
-    for (var item in response) {
-      loadedData.add(
-        Transaction(
-          id: item['id'].toString(),
-          title: item['title'],
-          amount: (item['amount'] as num).toDouble(),
-          date: DateTime.tryParse(item['date']) ?? DateTime.now(),
-          isExpense: item['isExpense'], // ✅ fixed
-        ),
-      );
+      for (var item in response) {
+        loadedData.add(
+          Transaction(
+            id: item['id'].toString(),
+            title: item['title'],
+            amount: (item['amount'] as num).toDouble(),
+            date: DateTime.tryParse(item['date']) ?? DateTime.now(),
+            isExpense: item['isExpense'], // ✅ fixed
+          ),
+        );
+      }
+
+      setState(() {
+        isLoading = false;
+        _transaction.clear();
+        _transaction.addAll(loadedData);
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load data: $e")));
     }
-
-    setState(() {
-      isLoading = false;
-      _transaction.clear();
-      _transaction.addAll(loadedData);
-    });
   }
 
   //DELETE SUPABASE
@@ -140,7 +232,7 @@ class _HomePageState extends State<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
-    double target = 20000;
+    double target = 25000;
 
     double incomeProgress = totalIncome / target;
     double expenseProgress = totalExpense / target;
@@ -148,33 +240,35 @@ class _HomePageState extends State<HomeContent> {
     // limit between 0 → 1
     incomeProgress = incomeProgress.clamp(0.0, 1.0);
     expenseProgress = expenseProgress.clamp(0.0, 1.0);
-    Future<void> refresh() {
-      return Future.delayed(Duration(seconds: 3));
+    Future<void> refresh() async {
+      await fetchData();
     }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       //appBar: AppBar(title: const Text('Expanse Tracker')),
       appBar: AppBar(
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.grey,
+              backgroundImage: userImage.isNotEmpty
+                  ? NetworkImage(userImage)
+                  : const AssetImage('assets/default.png') as ImageProvider,
+            ),
+            const SizedBox(width: 8),
+            Text('Hi $userName'),
+          ],
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 22),
-            child: Text(
-              'Expanse Tracker',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Spacer(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.notifications_sharp),
-              iconSize: 25,
-            ),
+          IconButton(
+            onPressed: isLoading ? null : () => logout(context),
+            icon: Icon(Icons.logout),
           ),
         ],
       ),
+
       body: RefreshIndicator(
         onRefresh: refresh,
 
@@ -201,7 +295,7 @@ class _HomePageState extends State<HomeContent> {
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -222,9 +316,9 @@ class _HomePageState extends State<HomeContent> {
                                 color: Colors.green,
                               ),
                             ),
-                            SizedBox(width: 10),
+                            SizedBox(width: 5),
                             Text(
-                              'Income : ₹${totalIncome.toStringAsFixed(2)},',
+                              'Income : ₹${totalIncome.toStringAsFixed(0)}',
                               style: TextStyle(color: Colors.white),
                             ),
                           ],
@@ -244,9 +338,9 @@ class _HomePageState extends State<HomeContent> {
                                 color: Colors.red,
                               ),
                             ),
-                            SizedBox(width: 10),
+                            SizedBox(width: 5),
                             Text(
-                              'Expanse : ₹${totalExpense.toStringAsFixed(2)},',
+                              'Expanse : ₹${totalExpense.toStringAsFixed(0)}',
                               style: TextStyle(color: Colors.white),
                             ),
                           ],
@@ -324,17 +418,26 @@ class _HomePageState extends State<HomeContent> {
                 ),
               ],
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  child: Text(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              child: Row(
+                children: [
+                  Text(
                     'Transaction',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ),
-                ),
-              ],
+                  Spacer(),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => Listdeatails()),
+                      );
+                    },
+                    child: Text('Show More'),
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: isLoading
@@ -421,7 +524,7 @@ class _HomePageState extends State<HomeContent> {
           ],
         ),
       ),
-      
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color.fromARGB(255, 104, 11, 234),
         onPressed: _startAddNewTransaction,

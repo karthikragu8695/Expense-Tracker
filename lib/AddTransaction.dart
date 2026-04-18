@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class Addtransaction extends StatefulWidget {
   final Function(String, double, bool) addTx;
@@ -11,6 +10,13 @@ class Addtransaction extends StatefulWidget {
 }
 
 class _MyWidgetState extends State<Addtransaction> {
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   bool isExpense = true;
@@ -39,7 +45,7 @@ class _MyWidgetState extends State<Addtransaction> {
           top: 16,
           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
         ),
-    
+
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -83,17 +89,20 @@ class _MyWidgetState extends State<Addtransaction> {
                 ),
               ),
             ),
-            SizedBox(height: 10,),
+            SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(isExpense ? 'Expense' : 'Income',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18),),
+                  child: Text(
+                    isExpense ? 'Expense' : 'Income',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
                 ),
                 Switch(
                   value: isExpense,
-                  activeColor: Colors.white,
+                  activeThumbColor: Colors.white,
                   activeTrackColor: isExpense ? Colors.red : Colors.green,
                   onChanged: (val) {
                     setState(() {
@@ -103,14 +112,21 @@ class _MyWidgetState extends State<Addtransaction> {
                 ),
               ],
             ),
-            SizedBox(height: 10,),
+            SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _submit,
-                child: Text('Save', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 18)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color.fromARGB(255, 104, 11, 234),
+                ),
+                child: Text(
+                  'Save',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ),

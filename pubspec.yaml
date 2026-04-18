@@ -14,6 +14,14 @@ dependencies:
   supabase_flutter: ^2.0.0
   shared_preferences: ^2.2.2
   cupertino_icons: ^1.0.8
+  pdf: ^3.10.7
+  printing: ^5.12.0
+  path_provider: ^2.1.2
+  permission_handler: ^12.0.1
+  open_filex: ^4.7.0
+  intl: ^0.20.2
+  google_fonts: ^8.0.2
+  image_picker: ^1.2.1
   
 
 dev_dependencies:
@@ -36,3 +44,5 @@ flutter:
     - assets/images/download.png
     - assets/images/uR9DIlXJzc.gif
     - assets/images/pngtree-pink-blue-neon-border-light-effect-circle-png-image_7093035.png
+    - assets/images/0f919d9ed77d99825f99e40be8ef8986_t.jpeg
+    - assets/images/216-2160813_tax-earn-icon.png
