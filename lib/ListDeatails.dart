@@ -28,51 +28,51 @@ class _MyWidgetState extends State<Listdeatails> {
 
   // ✅ FETCH DATA (FIXED)
   Future<void> fetchData() async {
-    final user = Supabase.instance.client.auth.currentUser;
+  final user = Supabase.instance.client.auth.currentUser;
 
-    if (user == null) {
-      print("User not logged in");
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final response = await Supabase.instance.client
-          .from('Transaction') // 👉 change to 'transactions' if renamed
-          .select()
-          
-          .eq('isExpense', isExpense)
-          .order('date', ascending: false);
-
-      final List<Transaction> loadedData = [];
-
-      for (var item in response) {
-        loadedData.add(
-          Transaction(
-            id: item['id'].toString(),
-            title: item['title'] ?? '',
-            amount: (item['amount'] as num).toDouble(),
-            date: DateTime.tryParse(item['date'] ?? '') ?? DateTime.now(),
-            isExpense: item['isExpense'] ?? false,
-          ),
-        );
-      }
-
-      setState(() {
-        _transaction.clear();
-        _transaction.addAll(loadedData);
-      });
-    } catch (e) {
-      print("Fetch error: $e");
-    }
-
-    setState(() {
-      isLoading = false;
-    });
+  if (user == null) {
+    print("User not logged in");
+    return;
   }
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    final response = await Supabase.instance.client
+        .from('Transaction')
+        .select()
+        .eq('user_id', user.id) // ✅ IMPORTANT FIX
+        .eq('isExpense', isExpense)
+        .order('date', ascending: false);
+
+    final List<Transaction> loadedData = [];
+
+    for (var item in response) {
+      loadedData.add(
+        Transaction(
+          id: item['id'].toString(),
+          title: item['title'] ?? '',
+          amount: (item['amount'] as num).toDouble(),
+          date: DateTime.tryParse(item['date'] ?? '') ?? DateTime.now(),
+          isExpense: item['isExpense'] ?? false,
+        ),
+      );
+    }
+
+    setState(() {
+      _transaction.clear();
+      _transaction.addAll(loadedData);
+    });
+  } catch (e) {
+    print("Fetch error: $e");
+  }
+
+  setState(() {
+    isLoading = false;
+  });
+}
 
   @override
   Widget build(BuildContext context) {

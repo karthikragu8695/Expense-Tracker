@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Transaction {
-  
   final String id;
   final String title;
   final double amount;
@@ -16,7 +15,6 @@ class Transaction {
   final bool isExpense;
 
   Transaction({
-   
     required this.id,
     required this.title,
     required this.amount,
@@ -26,7 +24,7 @@ class Transaction {
 }
 
 class HomeContent extends StatefulWidget {
-   HomeContent({super.key});
+  const HomeContent({super.key});
 
   @override
   State<HomeContent> createState() => _HomePageState();
@@ -122,9 +120,11 @@ class _HomePageState extends State<HomeContent> {
   final List<Transaction> _transaction = [];
   Future<void> fetchData() async {
     try {
+      final user = Supabase.instance.client.auth.currentUser;
       final response = await Supabase.instance.client
           .from('Transaction')
           .select()
+          .eq('user_id', user!.id) 
           .order('date', ascending: false);
 
       final List<Transaction> loadedData = [];
@@ -156,10 +156,12 @@ class _HomePageState extends State<HomeContent> {
 
   //DELETE SUPABASE
   Future<void> _deleteTransaction(String id, int index) async {
+    final user = Supabase.instance.client.auth.currentUser;
     await Supabase.instance.client
         .from('Transaction')
         .delete()
-        .eq('id', int.parse(id));
+       // .eq('id', int.parse(id));
+         .eq('user_id', user!.id);
     setState(() {
       _transaction.removeAt(index);
     });
@@ -171,6 +173,7 @@ class _HomePageState extends State<HomeContent> {
     double amount,
     bool isExpense,
   ) async {
+    final user = Supabase.instance.client.auth.currentUser;
     final response = await Supabase.instance.client
         .from('Transaction')
         .insert({
@@ -178,6 +181,7 @@ class _HomePageState extends State<HomeContent> {
           'amount': amount,
           'date': DateTime.now().toString().split(' ')[0],
           'isExpense': isExpense,
+          'user_id': user!.id,
         })
         .select()
         .single();
@@ -230,6 +234,52 @@ class _HomePageState extends State<HomeContent> {
     );
   }
 
+  Future<void> clearAllTransactions() async {
+  try {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) return;
+
+    await Supabase.instance.client
+        .from('Transaction')
+        .delete()
+        .eq('user_id', user.id); // ✅ only this user data
+
+    setState(() {
+      _transaction.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("All transactions cleared")),
+    );
+  } catch (e) {
+    print("Error: $e");
+  }
+}
+
+  Future<void> showClearDialog() async {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Clear All?"),
+        content: const Text("This will delete all transactions permanently"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await clearAllTransactions();
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     double target = 25000;
@@ -247,27 +297,51 @@ class _HomePageState extends State<HomeContent> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       //appBar: AppBar(title: const Text('Expanse Tracker')),
-      appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.grey,
-              backgroundImage: userImage.isNotEmpty
-                  ? NetworkImage(userImage)
-                  : const AssetImage('assets/default.png') as ImageProvider,
-            ),
-            const SizedBox(width: 8),
-            Text('Hi $userName'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: isLoading ? null : () => logout(context),
-            icon: Icon(Icons.logout),
+      appBar:
+          // AppBar(
+          //   title: Row(
+          //     children: [
+          //       CircleAvatar(
+          //         radius: 18,
+          //         backgroundColor: Colors.grey,
+          //         backgroundImage: userImage.isNotEmpty
+          //             ? NetworkImage(userImage)
+          //             : const AssetImage('assets/default.png') as ImageProvider,
+          //       ),
+          //       const SizedBox(width: 8),
+          //       Text('OverView'),
+          //     ],
+          //   ),
+          //   actions: [
+          //     IconButton(
+          //       onPressed: isLoading ? null : () => logout(context),
+          //       icon: Icon(Icons.logout),
+          //     ),
+          //   ],
+          // ),
+          AppBar(
+         //   backgroundColor: Colors.black,
+           
+            actions: [
+              IconButton(
+                alignment: Alignment.topLeft,
+                onPressed: isLoading ? null : () => logout(context),
+                icon: Icon(Icons.logout),
+              ),Spacer(),
+              Text(
+                  "Expense Tracker",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
+                ),Spacer(),
+              IconButton(
+                icon: const Icon(Icons.delete_forever),
+                onPressed: showClearDialog
+              ),
+            ],
           ),
-        ],
-      ),
 
       body: RefreshIndicator(
         onRefresh: refresh,
@@ -291,7 +365,7 @@ class _HomePageState extends State<HomeContent> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "₹${totalBalance.toStringAsFixed(2)}",
+                      "₹${totalBalance.toStringAsFixed(0)}",
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -473,7 +547,7 @@ class _HomePageState extends State<HomeContent> {
                           onDismissed: (_) async {
                             await _deleteTransaction(tx.id, index);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('${tx.id} deleted')),
+                              SnackBar(content: Text('${tx.title} deleted')),
                             );
                           },
                           background: Container(
